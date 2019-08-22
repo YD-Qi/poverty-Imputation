@@ -1,0 +1,1323 @@
+{smcl}
+{com}{sf}{ul off}{txt}{.-}
+      name:  {res}<unnamed>
+       {txt}log:  {res}Z:\Dropbox\Imputation\HBS2016_LFS2016_v1.smcl
+  {txt}log type:  {res}smcl
+ {txt}opened on:  {res}25 Apr 2019, 09:14:06
+{txt}
+{com}. // PREPARE LFS2016
+. tempfile LFS2016
+{txt}
+{com}. use "https://www.dropbox.com/s/5d3cscf5y82409y/lca_2008_2016.dta?dl=1", clear
+{txt}
+{com}. 
+. replace age_range=. if age_range>=15
+{txt}(345 real changes made, 345 to missing)
+
+{com}. recode age_range (1/3=1 0_14)(4/5=2 15_24)(6/8=3 25_40)(9/13=4 41_64)(14=5 above65), gen(age_group)
+{txt}(61666 differences between age_range and age_group)
+
+{com}. 
+. rename maxedu1 edu_group
+{res}{txt}
+{com}. 
+. rename hhsize members
+{res}{txt}
+{com}. rename age_original age
+{res}{txt}
+{com}. 
+. rename homeown own_home
+{res}{txt}
+{com}. rename vehic car
+{res}{txt}
+{com}. rename washer wash_machine
+{res}{txt}
+{com}. gen telef=(phone==1|cel==1)
+{txt}
+{com}. rename rooms nex_room 
+{res}{txt}
+{com}. rename bedrooms n_bedroom
+{res}{txt}
+{com}. 
+. rename wgt weight
+{res}{txt}
+{com}. gen nweight = weight*members
+{txt}(1 missing value generated)
+
+{com}. 
+. rename hrs1 total_hrs
+{res}{txt}
+{com}. destring hhid, replace
+{txt}hhid: all characters numeric; {res}replaced {txt}as {res}double
+{txt}
+{com}. gen survey = "LFS"
+{txt}
+{com}. 
+. gen employed    = (unemploy1==0 & eap1==1 & age>14)
+{txt}
+{com}. gen unemployed  = (unemploy1==1 & eap1==1 & age>14)
+{txt}
+{com}. gen not_LF              = (eap1==0 & age>14)
+{txt}
+{com}. 
+. gen     emp_status       =1 if  employed        == 1 
+{txt}(37,455 missing values generated)
+
+{com}. replace emp_status       =2 if  unemployed  == 1
+{txt}(6,638 real changes made)
+
+{com}. replace emp_status       =3 if  not_LF          == 1
+{txt}(17,244 real changes made)
+
+{com}. label   def                     emp_status      1 "employed" 2 "unemployed" 3 "out of LF" 
+{txt}
+{com}. label   val                     emp_status emp_status
+{txt}
+{com}. 
+. gen member_sq = members*members
+{txt}
+{com}. 
+. gen parish=dist
+{txt}(1 missing value generated)
+
+{com}. 
+. egen no_dependent          =total(age_group==1), by(hhid)
+{txt}
+{com}. 
+. gen occupation=1 if selfemp==1
+{txt}(61,105 missing values generated)
+
+{com}. replace occupation=2 if employer==1
+{txt}(1,297 real changes made)
+
+{com}. replace occupation=3 if employee==1
+{txt}(17,318 real changes made)
+
+{com}. 
+. label define occupation 1 self_employed 2 employer 3 employee
+{txt}
+{com}. label values occupation occupation
+{txt}
+{com}. 
+. egen married=total(relation==2), by(hhid)
+{txt}
+{com}. replace married =1 if married>0
+{txt}(531 real changes made)
+
+{com}. 
+. destring ed, replace
+{txt}ed: all characters numeric; {res}replaced {txt}as {res}long
+{txt}(1 missing value generated)
+{res}{txt}
+{com}. 
+. replace sector=10 if sector==4
+{txt}(363 real changes made)
+
+{com}. drop if parish==0 | parish==.
+{txt}(5 observations deleted)
+
+{com}. 
+. global head_char "sex relation hhid married age_group edu_group emp_status sector occupation unemployed emp_status"
+{txt}
+{com}. global hh_char "no_dependent urban parish members member_sq own_home wash_machine fridge telef n_bedroom car computer"
+{txt}
+{com}. 
+. keep ed hhead nweight weight survey year $head_char $hh_char 
+{txt}
+{com}. 
+. 
+. gen povline             =       6443            
+{txt}
+{com}. gen povline_def11       =       6067.426        
+{txt}
+{com}. 
+. global char_cont "n_bedroom"
+{txt}
+{com}. global char_bi "married own_home wash_machine fridge car computer"
+{txt}
+{com}. global char_cat_uno "sector emp_status occupation"
+{txt}
+{com}. global char_cat_o "edu_group"
+{txt}
+{com}. 
+. keep if year==2016
+{txt}(57,290 observations deleted)
+
+{com}. save `LFS2016'
+{txt}file C:\Users\PROFIL~1\yqi\AppData\Local\Temp\ST_4d1c_000001.tmp saved
+
+{com}. 
+. // PREPARE HBS2016
+. tempfile HBS2016
+{txt}
+{com}. use "https://www.dropbox.com/s/kpniuza3u0ezo3t/LCA_2016_SLCHB_v01_M_v01_A_SEDLAC-03__deflated_all.dta?dl=1", clear
+{txt}
+{com}. rename (hombre edad casado nivel aedu relab region_est2 urban)(sex age married edu_level edu_year employment_type med_region urban)
+{res}{txt}
+{com}. rename (miembros agua elect propieta auto moto bici tv_cable lavarropas heladera precaria)(members water_access elect_access own_home car motor bike tv wash_machine fridge bad_loc)
+{res}{txt}
+{com}. rename (gedad1 habita dormi banio cloacas)(age_group nex_room n_bedroom toilet toilet_sewer)
+{res}{txt}
+{com}. rename internet_casa internet 
+{res}{txt}
+{com}. rename deseo_emp xtrawork
+{res}{txt}
+{com}. rename contrato signed_contract
+{res}{txt}
+{com}. rename hstrt total_hrs
+{res}{txt}
+{com}. rename computadora computer
+{res}{txt}
+{com}. rename durades mo_unemp
+{res}{txt}
+{com}. rename id hhid 
+{res}{txt}
+{com}. rename ano_ocaux year
+{res}{txt}
+{com}. rename relacion relation
+{res}{txt}
+{com}. rename pondera weight
+{res}{txt}
+{com}. gen nweight = weight*members
+{txt}(4 missing values generated)
+
+{com}. 
+. gen pcexpae_def11 = pcexpae/cpi11
+{txt}
+{com}. gen povline_def11 = povline/cpi11
+{txt}
+{com}. gen ln_pcexpae_def11 = log(pcexpae_def11)
+{txt}(1 missing value generated)
+
+{com}. egen no_dependent          =total(age<=14), by(hhid)
+{txt}
+{com}. 
+. recode edu_level (0  =1 no_school)(1/2=2 primary)(3/4=3 secondary)(5/6 = 4 tertiary) (else=.), gen(edu_group)
+{txt}(3742 differences between edu_level and edu_group)
+
+{com}. 
+. gen employed    = (ocupado==1 & desocupa==0 & age>14)
+{txt}
+{com}. gen unemployed  = (ocupado==0 & desocupa==1 & age>14)
+{txt}
+{com}. gen not_LF              = (employed==0 & unemployed==0 & age>14)
+{txt}
+{com}. 
+. 
+. gen     emp_status       =1 if  employed        == 1 
+{txt}(2,588 missing values generated)
+
+{com}. replace emp_status       =2 if  unemployed  == 1
+{txt}(440 real changes made)
+
+{com}. replace emp_status       =3 if  not_LF          == 1
+{txt}(1,109 real changes made)
+
+{com}. label   def                     emp_status      1 "employed" 2 "unemployed" 3 "out of LF" 
+{txt}
+{com}. label   val                     emp_status emp_status
+{txt}
+{com}. 
+. gen     occupation = 1  if employment_type == 3 //self_employed 
+{txt}(4,169 missing values generated)
+
+{com}. replace occupation = 2  if employment_type == 1 //employer
+{txt}(100 real changes made)
+
+{com}. replace occupation = 3  if employment_type == 2|employment_type == 4 // employee
+{txt}(1,474 real changes made)
+
+{com}. 
+. label   def                     occupation      1 "self employed" 2 "employer" 3 "employee"  0 "unemployed" 100 "out of LF"
+{txt}
+{com}. label   val                     occupation occupation
+{txt}
+{com}. 
+. drop sector
+{txt}
+{com}. recode sector1d (1 2=1 agriculture)(4 = 2 manufacturing)(6 = 3 construction)(3 5 =4 mining_energy)(13 14 15 = 5 edu_health_social_service) ///
+>                                 (10 11 12 17= 6 professional_service)(9 = 7 tansportation)(7=8 wholesale_retail)(8 = 9 hotel_restaurants)(16 = 10 other), gen(sector)
+{txt}(1710 differences between sector1d and sector)
+
+{com}. 
+.         gen                             parish = region_est1
+{txt}
+{com}.         recode                  parish (4=3) (6=4) (7=5) (8=6) (9=7) (10=8) (11=9) (12=10)
+{txt}(parish: 3081 changes made)
+
+{com}.         label def               parish  1 "Castries City" 2 "Castries Rural" 3 "Anse la Raye/Canaries" 4 "SoufriËre" ///
+>                                                         5 "Choiseul" 6 "Laborie" 7 "Vieux Fort" 8 "Micoud" 9 "Dennery" 10 "Gros Islet"
+{txt}
+{com}.         label val               parish parish
+{txt}
+{com}.         label var               parish "District"
+{txt}
+{com}.         drop urban
+{txt}
+{com}.         gen                             urban = (parish == 1 | parish == 2 | parish == 3 | parish == 6 | parish == 9 | parish == 12) if parish != .
+{txt}
+{com}.         label var               urban "Urban locality"
+{txt}
+{com}. 
+. gen member_sq = members*members
+{txt}(4 missing values generated)
+
+{com}. gen survey = "HBS"
+{txt}
+{com}. 
+. global head_char "sex relation hhid married age_group edu_group emp_status sector occupation unemployed emp_status"
+{txt}
+{com}. global hh_char "no_dependent urban parish members member_sq own_home wash_machine fridge telef n_bedroom car computer"
+{txt}
+{com}. 
+. keep ed cpi11 povline povline_def11 pcexpae pcexpae_def11 ln_pcexpae_def11 nweight weight survey year $head_char $hh_char 
+{txt}
+{com}. 
+. replace sector=10 if sector==4
+{txt}(26 real changes made)
+
+{com}. drop if parish==0 | parish==.
+{txt}(0 observations deleted)
+
+{com}. 
+. replace povline                 =       6443            if povline ==.
+{txt}(0 real changes made)
+
+{com}. replace povline_def11   =       6067.426        if povline_def11==.
+{txt}(0 real changes made)
+
+{com}. 
+. append using `LFS2016'
+{txt}{p 0 7 2}
+(note: variable
+year was 
+int, now float to accommodate using data's values)
+{p_end}
+{p 0 7 2}
+(note: variable
+ed was 
+int, now long to accommodate using data's values)
+{p_end}
+{p 0 7 2}
+(note: variable
+weight was 
+int, now float to accommodate using data's values)
+{p_end}
+{p 0 7 2}
+(note: variable
+members was 
+byte, now float to accommodate using data's values)
+{p_end}
+{p 0 7 2}
+(note: variable
+sex was 
+byte, now float to accommodate using data's values)
+{p_end}
+{p 0 7 2}
+(note: variable
+sector was 
+byte, now float to accommodate using data's values)
+{p_end}
+{p 0 7 2}
+(note: variable
+own_home was 
+byte, now float to accommodate using data's values)
+{p_end}
+{p 0 7 2}
+(note: variable
+n_bedroom was 
+byte, now float to accommodate using data's values)
+{p_end}
+{p 0 7 2}
+(note: variable
+fridge was 
+byte, now float to accommodate using data's values)
+{p_end}
+{p 0 7 2}
+(note: variable
+wash_machine was 
+byte, now float to accommodate using data's values)
+{p_end}
+{p 0 7 2}
+(note: variable
+computer was 
+byte, now float to accommodate using data's values)
+{p_end}
+{p 0 7 2}
+(note: variable
+car was 
+byte, now float to accommodate using data's values)
+{p_end}
+{p 0 7 2}
+(note: variable
+relation was 
+byte, now float to accommodate using data's values)
+{p_end}
+{p 0 7 2}
+(note: variable
+hhid was 
+int, now double to accommodate using data's values)
+{p_end}
+{p 0 7 2}
+(note: variable
+edu_group was 
+byte, now float to accommodate using data's values)
+{p_end}
+{p 0 7 2}
+(note: variable
+age_group was 
+byte, now double to accommodate using data's values)
+{p_end}
+{p 0 7 2}
+(note: variable
+telef was 
+byte, now float to accommodate using data's values)
+{p_end}
+{p 0 7 2}
+(note: variable
+married was 
+byte, now float to accommodate using data's values)
+{p_end}
+{p 0 7 2}
+(note: variable
+povline was 
+int, now float to accommodate using data's values)
+{p_end}
+(label occupation already defined)
+(label emp_status already defined)
+(label sector already defined)
+
+{com}. 
+. global char_cont "n_bedroom"
+{txt}
+{com}. global char_bi "married own_home wash_machine fridge car computer"
+{txt}
+{com}. global char_cat_uno "sector emp_status occupation"
+{txt}
+{com}. global char_cat_o "edu_group"
+{txt}
+{com}. 
+. // impute missing values for all necessary variables
+. mi set mlong
+{txt}
+{com}. mi register imputed  $char_cont $char_bi $char_cat_uno $char_cat_o
+{res}{txt}{p}
+(8388 {it:m}=0 obs. now marked as incomplete)
+{p_end}
+
+{com}. qui mi impute chained (regress) $char_cont (logit) $char_bi (mlogit) $char_cat_uno (ologit) $char_cat_o = sex age_group [pw=weight] if survey=="HBS", augment add(5) rseed(1234) force noisily 
+{txt}
+{com}. qui mi impute chained (regress) $char_cont (logit) $char_bi (mlogit) $char_cat_uno (ologit) $char_cat_o = sex age_group [pw=weight] if survey=="LFS", augment add(5) rseed(1234) force noisily 
+{txt}
+{com}. 
+. tab age_group, gen(age_group_) 
+
+{txt}Age groups: {c |}
+ 2=[15,24], {c |}
+ 3=[25,40], {c |}
+  4=[41,64] {c |}      Freq.     Percent        Cum.
+{hline 12}{c +}{hline 35}
+     [0,14] {c |}{res}     27,434       28.40       28.40
+{txt}    [15,24] {c |}{res}     18,844       19.51       47.91
+{txt}    [25,40] {c |}{res}     16,692       17.28       65.18
+{txt}    [41,64] {c |}{res}     19,644       20.33       85.52
+{txt}      [65+] {c |}{res}     13,988       14.48      100.00
+{txt}{hline 12}{c +}{hline 35}
+      Total {c |}{res}     96,602      100.00
+{txt}
+{com}. tab edu_group, gen(edu_group_)
+
+  {txt}RECODE of {c |}
+  edu_level {c |}
+   (Highest {c |}
+   level of {c |}
+  education {c |}
+attainment) {c |}      Freq.     Percent        Cum.
+{hline 12}{c +}{hline 35}
+  no_school {c |}{res}     37,281       39.37       39.37
+{txt}    primary {c |}{res}     15,940       16.83       56.20
+{txt}  secondary {c |}{res}     33,515       35.39       91.59
+{txt}   tertiary {c |}{res}      7,960        8.41      100.00
+{txt}{hline 12}{c +}{hline 35}
+      Total {c |}{res}     94,696      100.00
+{txt}
+{com}. mi passive: egen no_no_school      =total(edu_group_1==1), by(hhid)
+{res}{txt}{it:m}=0:
+{res}{txt}{it:m}=1:
+{res}{txt}{it:m}=2:
+{res}{txt}{it:m}=3:
+{res}{txt}{it:m}=4:
+{res}{txt}{it:m}=5:
+{res}{txt}{it:m}=6:
+{res}{txt}{it:m}=7:
+{res}{txt}{it:m}=8:
+{res}{txt}{it:m}=9:
+{res}{txt}{it:m}=10:
+{res}{txt}
+{com}. mi passive: egen no_primary        =total(edu_group_2==1), by(hhid)
+{res}{txt}{it:m}=0:
+{res}{txt}{it:m}=1:
+{res}{txt}{it:m}=2:
+{res}{txt}{it:m}=3:
+{res}{txt}{it:m}=4:
+{res}{txt}{it:m}=5:
+{res}{txt}{it:m}=6:
+{res}{txt}{it:m}=7:
+{res}{txt}{it:m}=8:
+{res}{txt}{it:m}=9:
+{res}{txt}{it:m}=10:
+{res}{txt}
+{com}. mi passive: egen no_secondary      =total(edu_group_3==1), by(hhid)
+{res}{txt}{it:m}=0:
+{res}{txt}{it:m}=1:
+{res}{txt}{it:m}=2:
+{res}{txt}{it:m}=3:
+{res}{txt}{it:m}=4:
+{res}{txt}{it:m}=5:
+{res}{txt}{it:m}=6:
+{res}{txt}{it:m}=7:
+{res}{txt}{it:m}=8:
+{res}{txt}{it:m}=9:
+{res}{txt}{it:m}=10:
+{res}{txt}
+{com}. mi passive: egen no_tertiary       =total(edu_group_4==1), by(hhid)
+{res}{txt}{it:m}=0:
+{res}{txt}{it:m}=1:
+{res}{txt}{it:m}=2:
+{res}{txt}{it:m}=3:
+{res}{txt}{it:m}=4:
+{res}{txt}{it:m}=5:
+{res}{txt}{it:m}=6:
+{res}{txt}{it:m}=7:
+{res}{txt}{it:m}=8:
+{res}{txt}{it:m}=9:
+{res}{txt}{it:m}=10:
+{res}{txt}
+{com}. 
+. tab occupation, gen(occupation_)
+
+   {txt}occupation {c |}      Freq.     Percent        Cum.
+{hline 14}{c +}{hline 35}
+self employed {c |}{res}      9,650       17.63       17.63
+{txt}     employer {c |}{res}      1,380        2.52       20.16
+{txt}     employee {c |}{res}     43,692       79.84      100.00
+{txt}{hline 14}{c +}{hline 35}
+        Total {c |}{res}     54,722      100.00
+{txt}
+{com}. mi passive: egen no_self_employed=total(occupation_1==1), by(hhid)
+{res}{txt}{it:m}=0:
+{res}{txt}{it:m}=1:
+{res}{txt}{it:m}=2:
+{res}{txt}{it:m}=3:
+{res}{txt}{it:m}=4:
+{res}{txt}{it:m}=5:
+{res}{txt}{it:m}=6:
+{res}{txt}{it:m}=7:
+{res}{txt}{it:m}=8:
+{res}{txt}{it:m}=9:
+{res}{txt}{it:m}=10:
+{res}{txt}
+{com}. mi passive: egen no_employer     =total(occupation_2==1), by(hhid)
+{res}{txt}{it:m}=0:
+{res}{txt}{it:m}=1:
+{res}{txt}{it:m}=2:
+{res}{txt}{it:m}=3:
+{res}{txt}{it:m}=4:
+{res}{txt}{it:m}=5:
+{res}{txt}{it:m}=6:
+{res}{txt}{it:m}=7:
+{res}{txt}{it:m}=8:
+{res}{txt}{it:m}=9:
+{res}{txt}{it:m}=10:
+{res}{txt}
+{com}. mi passive: egen no_employee     =total(occupation_3==1), by(hhid)
+{res}{txt}{it:m}=0:
+{res}{txt}{it:m}=1:
+{res}{txt}{it:m}=2:
+{res}{txt}{it:m}=3:
+{res}{txt}{it:m}=4:
+{res}{txt}{it:m}=5:
+{res}{txt}{it:m}=6:
+{res}{txt}{it:m}=7:
+{res}{txt}{it:m}=8:
+{res}{txt}{it:m}=9:
+{res}{txt}{it:m}=10:
+{res}{txt}
+{com}. 
+. tab sector, gen(sector_)
+
+       {txt}RECODE of sector1d {c |}
+     (Activity sector - 1 {c |}
+              digit ISIC) {c |}      Freq.     Percent        Cum.
+{hline 26}{c +}{hline 35}
+              agriculture {c |}{res}      5,923       10.95       10.95
+{txt}            manufacturing {c |}{res}      3,729        6.90       17.85
+{txt}             construction {c |}{res}      4,461        8.25       26.10
+{txt}edu_health_social_service {c |}{res}      4,763        8.81       34.91
+{txt}     professional_service {c |}{res}      8,106       14.99       49.90
+{txt}            tansportation {c |}{res}      3,208        5.93       55.84
+{txt}         wholesale_retail {c |}{res}     10,641       19.68       75.52
+{txt}        hotel_restaurants {c |}{res}      9,792       18.11       93.63
+{txt}                    other {c |}{res}      3,445        6.37      100.00
+{txt}{hline 26}{c +}{hline 35}
+                    Total {c |}{res}     54,068      100.00
+{txt}
+{com}. tab parish, gen(parish_)
+
+             {txt}District {c |}      Freq.     Percent        Cum.
+{hline 22}{c +}{hline 35}
+        Castries City {c |}{res}      6,329        6.55        6.55
+{txt}       Castries Rural {c |}{res}     30,558       31.60       38.15
+{txt}Anse la Raye/Canaries {c |}{res}      5,617        5.81       43.96
+{txt}            SoufriËre {c |}{res}      6,112        6.32       50.28
+{txt}             Choiseul {c |}{res}      4,418        4.57       54.85
+{txt}              Laborie {c |}{res}      4,189        4.33       59.18
+{txt}           Vieux Fort {c |}{res}      9,169        9.48       68.66
+{txt}               Micoud {c |}{res}      9,602        9.93       78.60
+{txt}              Dennery {c |}{res}      8,147        8.43       87.02
+{txt}           Gros Islet {c |}{res}     12,549       12.98      100.00
+{txt}{hline 22}{c +}{hline 35}
+                Total {c |}{res}     96,690      100.00
+{txt}
+{com}. tab emp_status, gen(emp_status_)
+
+ {txt}emp_status {c |}      Freq.     Percent        Cum.
+{hline 12}{c +}{hline 35}
+   employed {c |}{res}     24,310       29.75       29.75
+{txt} unemployed {c |}{res}     20,350       24.90       54.65
+{txt}  out of LF {c |}{res}     37,066       45.35      100.00
+{txt}{hline 12}{c +}{hline 35}
+      Total {c |}{res}     81,726      100.00
+{txt}
+{com}. 
+. mi svyset       ed      [pw=nweight], strata(parish)
+{res}
+      {txt}pweight:{col 16}{res}nweight
+          {txt}VCE:{col 16}{res}linearized
+  {txt}Single unit:{col 16}{res}missing
+     {txt}Strata 1:{col 16}{res}parish
+         {txt}SU 1:{col 16}{res}ed
+        {txt}FPC 1:{col 16}<zero>
+{p2colreset}{...}
+{res}{txt}
+{com}. 
+. keep if relation==1
+{txt}(73,006 observations deleted)
+
+{com}. 
+. 
+. global head_char "married age_group_2-age_group_5 edu_group_2-edu_group_4 sector_2-sector_9 occupation_2-occupation_3 emp_status_2 emp_status_3"
+{txt}
+{com}. global hh_char "parish_2-parish_10 no_dependent no_self_employed no_employer no_employee no_no_school no_primary no_secondary no_tertiary members member_sq"
+{txt}
+{com}. 
+. mi register imputed  ln_pcexpae_def11
+{res}{txt}{p}
+(system variable _mi_id updated due to changed number of obs.)
+{p_end}
+{p}
+(1859 {it:m}=0 obs. now marked as incomplete)
+{p_end}
+(18590 {it:m}>0 marginal obs. added)
+
+{com}. 
+. qui mi impute chained (regress) ln_pcexpae_def11 = sex $head_char $hh_char [pw=nweight], augment add(10) replace rseed(1234) force noisily 
+{txt}
+{com}. 
+. mi xeq: gen pcexpae_def11_hat=exp(ln_pcexpae_def11_hat)
+{res}
+{txt}{it:m}=0 data:
+{res}{txt}-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11_hat)
+{err}ln_pcexpae_def11_hat not found
+{res}{txt}{search r(111), local:r(111);}
+
+end of do-file
+
+{search r(111), local:r(111);}
+
+{com}. do "C:\Users\PROFIL~1\yqi\AppData\Local\Temp\STD4d1c_000000.tmp"
+{txt}
+{com}. mi xeq: gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{res}
+{txt}{it:m}=0 data:
+{res}{txt}-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}(3,175 missing values generated)
+
+{it:m}=1 data:
+-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}(1,207 missing values generated)
+
+{it:m}=2 data:
+-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}(1,207 missing values generated)
+
+{it:m}=3 data:
+-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}(1,207 missing values generated)
+
+{it:m}=4 data:
+-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}(1,207 missing values generated)
+
+{it:m}=5 data:
+-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}(1,207 missing values generated)
+
+{it:m}=6 data:
+-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}(1,185 missing values generated)
+
+{it:m}=7 data:
+-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}(1,185 missing values generated)
+
+{it:m}=8 data:
+-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}(1,185 missing values generated)
+
+{it:m}=9 data:
+-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}(1,185 missing values generated)
+
+{it:m}=10 data:
+-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}(1,185 missing values generated)
+
+{it:m}=11 data:
+-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}(1,207 missing values generated)
+
+{it:m}=12 data:
+-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}(1,207 missing values generated)
+
+{it:m}=13 data:
+-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}(1,207 missing values generated)
+
+{it:m}=14 data:
+-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}(1,207 missing values generated)
+
+{it:m}=15 data:
+-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}(1,207 missing values generated)
+
+{it:m}=16 data:
+-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}(1,207 missing values generated)
+
+{it:m}=17 data:
+-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}(1,207 missing values generated)
+
+{it:m}=18 data:
+-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}(1,207 missing values generated)
+
+{it:m}=19 data:
+-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}(1,207 missing values generated)
+
+{it:m}=20 data:
+-> {res}gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}(1,207 missing values generated)
+{res}{txt}
+{com}. mi xeq: gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+{res}
+{txt}{it:m}=0 data:
+{res}{txt}-> {res}gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+
+{txt}{it:m}=1 data:
+-> {res}gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+
+{txt}{it:m}=2 data:
+-> {res}gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+
+{txt}{it:m}=3 data:
+-> {res}gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+
+{txt}{it:m}=4 data:
+-> {res}gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+
+{txt}{it:m}=5 data:
+-> {res}gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+
+{txt}{it:m}=6 data:
+-> {res}gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+
+{txt}{it:m}=7 data:
+-> {res}gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+
+{txt}{it:m}=8 data:
+-> {res}gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+
+{txt}{it:m}=9 data:
+-> {res}gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+
+{txt}{it:m}=10 data:
+-> {res}gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+
+{txt}{it:m}=11 data:
+-> {res}gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+
+{txt}{it:m}=12 data:
+-> {res}gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+
+{txt}{it:m}=13 data:
+-> {res}gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+
+{txt}{it:m}=14 data:
+-> {res}gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+
+{txt}{it:m}=15 data:
+-> {res}gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+
+{txt}{it:m}=16 data:
+-> {res}gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+
+{txt}{it:m}=17 data:
+-> {res}gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+
+{txt}{it:m}=18 data:
+-> {res}gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+
+{txt}{it:m}=19 data:
+-> {res}gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+
+{txt}{it:m}=20 data:
+-> {res}gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+{txt}
+{com}. mi estimate: svy: mean poverty_hat if year==2016 & srvey=="HBS"
+{err}srvey not found
+{txt}{search r(111), local:r(111);}
+
+end of do-file
+
+{search r(111), local:r(111);}
+
+{com}. do "C:\Users\PROFIL~1\yqi\AppData\Local\Temp\STD4d1c_000000.tmp"
+{txt}
+{com}. mi estimate: svy: mean poverty_hat if year==2016 & survey=="HBS"
+{res}
+{txt}Multiple-imputation estimates{col 35}Imputations{col 51}= {res}        20
+{txt}Survey: Mean estimation{col 35}Number of obs{col 51}= {res}     1,480
+
+{txt}{col 1}Number of strata{col 19}= {res}       10{txt}{col 35}Population size{col 51}={res}    171,410
+{txt}{col 1}Number of PSUs{col 19}= {res}      240
+{txt}{col 35}Average RVI{col 51}= {res}    0.0000
+{txt}{col 35}Largest FMI{col 51}= {res}    0.0000
+{txt}{col 35}Complete DF{col 51}= {res}       230
+{txt}DF adjustment:{ralign 15: {res:Small sample}}{col 35}DF:     min{col 51}= {res}    228.03
+{txt}{col 35}        avg{col 51}= {res}    228.03
+{txt}Within VCE type: {ralign 12:{res:Linearized}}{col 35}        max{col 51}= {res}    228.03
+
+{txt}{hline 13}{c TT}{hline 11}{hline 11}{hline 14}{hline 12}
+{col 14}{c |}       Mean{col 26}   Std. Err.{col 38}     [95% Con{col 51}f. Interval]
+{hline 13}{c +}{hline 11}{hline 11}{hline 14}{hline 12}
+{space 1}poverty_hat {c |}{col 14}{res}{space 2}  .265883{col 26}{space 2}   .01786{col 37}{space 5} .2306912{col 51}{space 3} .3010747
+{txt}{hline 13}{c BT}{hline 11}{hline 11}{hline 14}{hline 12}
+{res}{txt}
+{com}. mi estimate: svy: mean poverty_hat if year==2016 & survey=="LFS"
+{res}
+{txt}Multiple-imputation estimates{col 35}Imputations{col 51}= {res}        20
+{txt}Survey: Mean estimation{col 35}Number of obs{col 51}= {res}     3,174
+
+{txt}{col 1}Number of strata{col 19}= {res}       10{txt}{col 35}Population size{col 51}={res}  694,562.2
+{txt}{col 1}Number of PSUs{col 19}= {res}      480
+{txt}{col 35}Average RVI{col 51}= {res}    4.0131
+{txt}{col 35}Largest FMI{col 51}= {res}    0.8154
+{txt}{col 35}Complete DF{col 51}= {res}       470
+{txt}DF adjustment:{ralign 15: {res:Small sample}}{col 35}DF:     min{col 51}= {res}     22.50
+{txt}{col 35}        avg{col 51}= {res}     22.50
+{txt}Within VCE type: {ralign 12:{res:Linearized}}{col 35}        max{col 51}= {res}     22.50
+
+{txt}{hline 13}{c TT}{hline 11}{hline 11}{hline 14}{hline 12}
+{col 14}{c |}       Mean{col 26}   Std. Err.{col 38}     [95% Con{col 51}f. Interval]
+{hline 13}{c +}{hline 11}{hline 11}{hline 14}{hline 12}
+{space 1}poverty_hat {c |}{col 14}{res}{space 2} .1422573{col 26}{space 2} .0208614{col 37}{space 5} .0990493{col 51}{space 3} .1854652
+{txt}{hline 13}{c BT}{hline 11}{hline 11}{hline 14}{hline 12}
+{res}{txt}
+{com}. 
+{txt}end of do-file
+
+{com}. do "C:\Users\PROFIL~1\yqi\AppData\Local\Temp\STD4d1c_000000.tmp"
+{txt}
+{com}. 
+. local years "2016 2015 2014 2013 2012 2011 2009 2008"
+{txt}
+{com}. foreach i of local years {c -(}
+{txt}  2{com}. // PREPARE LFS2008_2016
+. tempfile LFS2008_2016
+{txt}  3{com}. use "https://www.dropbox.com/s/5d3cscf5y82409y/lca_2008_2016.dta?dl=1", clear
+{txt}  4{com}. 
+. quietly {c -(}
+{txt}  5{com}. keep if year==`i'
+{txt}  6{com}. replace age_range=. if age_range>=15
+{txt}  7{com}. recode age_range (1/3=1 0_14)(4/5=2 15_24)(6/8=3 25_40)(9/13=4 41_64)(14=5 above65), gen(age_group)
+{txt}  8{com}. 
+. rename maxedu1 edu_group
+{txt}  9{com}. 
+. rename hhsize members
+{txt} 10{com}. rename age_original age
+{txt} 11{com}. 
+. rename homeown own_home
+{txt} 12{com}. rename vehic car
+{txt} 13{com}. rename washer wash_machine
+{txt} 14{com}. gen telef=(phone==1|cel==1)
+{txt} 15{com}. rename rooms nex_room 
+{txt} 16{com}. rename bedrooms n_bedroom
+{txt} 17{com}. 
+. rename wgt weight
+{txt} 18{com}. gen nweight = weight*members
+{txt} 19{com}. 
+. rename hrs1 total_hrs
+{txt} 20{com}. destring hhid, replace
+{txt} 21{com}. gen survey = "LFS"
+{txt} 22{com}. 
+. gen employed    = (unemploy1==0 & eap1==1 & age>14)
+{txt} 23{com}. gen unemployed  = (unemploy1==1 & eap1==1 & age>14)
+{txt} 24{com}. gen not_LF              = (eap1==0 & age>14)
+{txt} 25{com}. 
+. gen     emp_status       =1 if  employed        == 1 
+{txt} 26{com}. replace emp_status       =2 if  unemployed  == 1
+{txt} 27{com}. replace emp_status       =3 if  not_LF          == 1
+{txt} 28{com}. label   def                     emp_status      1 "employed" 2 "unemployed" 3 "out of LF" 
+{txt} 29{com}. label   val                     emp_status emp_status
+{txt} 30{com}. 
+. gen member_sq = members*members
+{txt} 31{com}. 
+. gen parish=dist
+{txt} 32{com}. 
+. egen no_dependent          =total(age_group==1), by(hhid)
+{txt} 33{com}. 
+. gen occupation=1 if selfemp==1
+{txt} 34{com}. replace occupation=2 if employer==1
+{txt} 35{com}. replace occupation=3 if employee==1
+{txt} 36{com}. 
+. label define occupation 1 self_employed 2 employer 3 employee
+{txt} 37{com}. label values occupation occupation
+{txt} 38{com}. 
+. egen married=total(relation==2), by(hhid)
+{txt} 39{com}. replace married =1 if married>0
+{txt} 40{com}. 
+. destring ed, replace
+{txt} 41{com}. 
+. replace sector=10 if sector==4
+{txt} 42{com}. drop if parish==0 | parish==.
+{txt} 43{com}. 
+. global head_char "sex relation hhid married age_group edu_group emp_status sector occupation unemployed emp_status"
+{txt} 44{com}. global hh_char "no_dependent urban parish members member_sq own_home wash_machine fridge telef n_bedroom car computer"
+{txt} 45{com}. 
+. keep ed hhead nweight weight survey year $head_char $hh_char 
+{txt} 46{com}. 
+. 
+. gen povline             =       6443            
+{txt} 47{com}. gen povline_def11       =       6067.426        
+{txt} 48{com}. 
+. global char_cont "n_bedroom"
+{txt} 49{com}. global char_bi "married own_home wash_machine fridge car computer"
+{txt} 50{com}. global char_cat_uno "sector emp_status occupation"
+{txt} 51{com}. global char_cat_o "edu_group"
+{txt} 52{com}. 
+. save `LFS2008_2016'
+{txt} 53{com}. 
+. // PREPARE HBS2016
+. tempfile HBS2016
+{txt} 54{com}. use "https://www.dropbox.com/s/kpniuza3u0ezo3t/LCA_2016_SLCHB_v01_M_v01_A_SEDLAC-03__deflated_all.dta?dl=1", clear
+{txt} 55{com}. rename (hombre edad casado nivel aedu relab region_est2 urban)(sex age married edu_level edu_year employment_type med_region urban)
+{txt} 56{com}. rename (miembros agua elect propieta auto moto bici tv_cable lavarropas heladera precaria)(members water_access elect_access own_home car motor bike tv wash_machine fridge bad_loc)
+{txt} 57{com}. rename (gedad1 habita dormi banio cloacas)(age_group nex_room n_bedroom toilet toilet_sewer)
+{txt} 58{com}. rename internet_casa internet 
+{txt} 59{com}. rename deseo_emp xtrawork
+{txt} 60{com}. rename contrato signed_contract
+{txt} 61{com}. rename hstrt total_hrs
+{txt} 62{com}. rename computadora computer
+{txt} 63{com}. rename durades mo_unemp
+{txt} 64{com}. rename id hhid 
+{txt} 65{com}. rename ano_ocaux year
+{txt} 66{com}. rename relacion relation
+{txt} 67{com}. rename pondera weight
+{txt} 68{com}. gen nweight = weight*members
+{txt} 69{com}. 
+. gen pcexpae_def11 = pcexpae/cpi11
+{txt} 70{com}. gen povline_def11 = povline/cpi11
+{txt} 71{com}. gen ln_pcexpae_def11 = log(pcexpae_def11)
+{txt} 72{com}. egen no_dependent          =total(age<=14), by(hhid)
+{txt} 73{com}. 
+. recode edu_level (0  =1 no_school)(1/2=2 primary)(3/4=3 secondary)(5/6 = 4 tertiary) (else=.), gen(edu_group)
+{txt} 74{com}. 
+. gen employed    = (ocupado==1 & desocupa==0 & age>14)
+{txt} 75{com}. gen unemployed  = (ocupado==0 & desocupa==1 & age>14)
+{txt} 76{com}. gen not_LF              = (employed==0 & unemployed==0 & age>14)
+{txt} 77{com}. 
+. 
+. gen     emp_status       =1 if  employed        == 1 
+{txt} 78{com}. replace emp_status       =2 if  unemployed  == 1
+{txt} 79{com}. replace emp_status       =3 if  not_LF          == 1
+{txt} 80{com}. label   def                     emp_status      1 "employed" 2 "unemployed" 3 "out of LF" 
+{txt} 81{com}. label   val                     emp_status emp_status
+{txt} 82{com}. 
+. gen     occupation = 1  if employment_type == 3 //self_employed 
+{txt} 83{com}. replace occupation = 2  if employment_type == 1 //employer
+{txt} 84{com}. replace occupation = 3  if employment_type == 2|employment_type == 4 // employee
+{txt} 85{com}. 
+. label   def                     occupation      1 "self employed" 2 "employer" 3 "employee"  0 "unemployed" 100 "out of LF"
+{txt} 86{com}. label   val                     occupation occupation
+{txt} 87{com}. 
+. drop sector
+{txt} 88{com}. recode sector1d (1 2=1 agriculture)(4 = 2 manufacturing)(6 = 3 construction)(3 5 =4 mining_energy)(13 14 15 = 5 edu_health_social_service) ///
+>                                 (10 11 12 17= 6 professional_service)(9 = 7 tansportation)(7=8 wholesale_retail)(8 = 9 hotel_restaurants)(16 = 10 other), gen(sector)
+{txt} 89{com}. 
+.         gen                             parish = region_est1
+{txt} 90{com}.         recode                  parish (4=3) (6=4) (7=5) (8=6) (9=7) (10=8) (11=9) (12=10)
+{txt} 91{com}.         label def               parish  1 "Castries City" 2 "Castries Rural" 3 "Anse la Raye/Canaries" 4 "SoufriËre" ///
+>                                                         5 "Choiseul" 6 "Laborie" 7 "Vieux Fort" 8 "Micoud" 9 "Dennery" 10 "Gros Islet"
+{txt} 92{com}.         label val               parish parish
+{txt} 93{com}.         label var               parish "District"
+{txt} 94{com}.         drop urban
+{txt} 95{com}.         gen                             urban = (parish == 1 | parish == 2 | parish == 3 | parish == 6 | parish == 9 | parish == 12) if parish != .
+{txt} 96{com}.         label var               urban "Urban locality"
+{txt} 97{com}. 
+. gen member_sq = members*members
+{txt} 98{com}. gen survey = "HBS"
+{txt} 99{com}. 
+. global head_char "sex relation hhid married age_group edu_group emp_status sector occupation unemployed emp_status"
+{txt}100{com}. global hh_char "no_dependent urban parish members member_sq own_home wash_machine fridge telef n_bedroom car computer"
+{txt}101{com}. 
+. keep ed cpi11 povline povline_def11 pcexpae pcexpae_def11 ln_pcexpae_def11 nweight weight survey year $head_char $hh_char 
+{txt}102{com}. 
+. replace sector=10 if sector==4
+{txt}103{com}. drop if parish==0 | parish==.
+{txt}104{com}. 
+. replace povline                 =       6443            if povline ==.
+{txt}105{com}. replace povline_def11   =       6067.426        if povline_def11==.
+{txt}106{com}. 
+. append using `LFS2008_2016'
+{txt}107{com}. 
+. global char_cont "n_bedroom"
+{txt}108{com}. global char_bi "married own_home wash_machine fridge car computer"
+{txt}109{com}. global char_cat_uno "sector emp_status occupation"
+{txt}110{com}. global char_cat_o "edu_group"
+{txt}111{com}. 
+. // impute missing values for all necessary variables
+. mi set mlong
+{txt}112{com}. mi register imputed  $char_cont $char_bi $char_cat_uno $char_cat_o
+{txt}113{com}. qui mi impute chained (regress) $char_cont (logit) $char_bi (mlogit) $char_cat_uno (ologit) $char_cat_o = sex age_group [pw=weight] if survey=="HBS", augment add(5) rseed(1234) force noisily 
+{txt}114{com}. qui mi impute chained (regress) $char_cont (logit) $char_bi (mlogit) $char_cat_uno (ologit) $char_cat_o = sex age_group [pw=weight] if survey=="LFS", augment add(5) rseed(1234) force noisily 
+{txt}115{com}. 
+. tab age_group, gen(age_group_) 
+{txt}116{com}. tab edu_group, gen(edu_group_)
+{txt}117{com}. mi passive: egen no_no_school      =total(edu_group_1==1), by(hhid)
+{txt}118{com}. mi passive: egen no_primary        =total(edu_group_2==1), by(hhid)
+{txt}119{com}. mi passive: egen no_secondary      =total(edu_group_3==1), by(hhid)
+{txt}120{com}. mi passive: egen no_tertiary       =total(edu_group_4==1), by(hhid)
+{txt}121{com}. 
+. tab occupation, gen(occupation_)
+{txt}122{com}. mi passive: egen no_self_employed=total(occupation_1==1), by(hhid)
+{txt}123{com}. mi passive: egen no_employer     =total(occupation_2==1), by(hhid)
+{txt}124{com}. mi passive: egen no_employee     =total(occupation_3==1), by(hhid)
+{txt}125{com}. 
+. tab sector, gen(sector_)
+{txt}126{com}. tab parish, gen(parish_)
+{txt}127{com}. tab emp_status, gen(emp_status_)
+{txt}128{com}. 
+. mi svyset       ed      [pw=nweight], strata(parish)
+{txt}129{com}. 
+. keep if relation==1
+{txt}130{com}. 
+. global head_char "married age_group_2-age_group_5 edu_group_2-edu_group_4 sector_2-sector_9 occupation_2-occupation_3 emp_status_2 emp_status_3"
+{txt}131{com}. global hh_char "parish_2-parish_10 no_dependent no_self_employed no_employer no_employee no_no_school no_primary no_secondary no_tertiary members member_sq"
+{txt}132{com}. 
+. mi register imputed  ln_pcexpae_def11
+{txt}133{com}. 
+. qui mi impute chained (regress) ln_pcexpae_def11 = sex $head_char $hh_char [pw=nweight], augment add(10) replace rseed(1234) force noisily 
+{txt}134{com}. 
+. mi xeq: gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}135{com}. mi xeq: gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+{txt}136{com}. {c )-}
+{txt}137{com}. mi estimate: svy: mean poverty_hat if year==2016 & survey=="HBS"
+{txt}138{com}. dis `i'
+{txt}139{com}. mi estimate: svy: mean poverty_hat if year==`i' & survey=="LFS"
+{txt}140{com}. 
+. 
+{err}unexpected end of file
+{txt}{search r(612), local:r(612);}
+
+end of do-file
+
+{search r(612), local:r(612);}
+{com}. do "C:\Users\PROFIL~1\yqi\AppData\Local\Temp\STD4d1c_000000.tmp"
+{txt}
+{com}. 
+. local years "2016 2015 2014 2013 2012 2011 2009 2008"
+{txt}
+{com}. foreach i of local years {c -(}
+{txt}  2{com}. // PREPARE LFS2008_2016
+. tempfile LFS2008_2016
+{txt}  3{com}. use "https://www.dropbox.com/s/5d3cscf5y82409y/lca_2008_2016.dta?dl=1", clear
+{txt}  4{com}. 
+. quietly {c -(}
+{txt}  5{com}. keep if year==`i'
+{txt}  6{com}. replace age_range=. if age_range>=15
+{txt}  7{com}. recode age_range (1/3=1 0_14)(4/5=2 15_24)(6/8=3 25_40)(9/13=4 41_64)(14=5 above65), gen(age_group)
+{txt}  8{com}. 
+. rename maxedu1 edu_group
+{txt}  9{com}. 
+. rename hhsize members
+{txt} 10{com}. rename age_original age
+{txt} 11{com}. 
+. rename homeown own_home
+{txt} 12{com}. rename vehic car
+{txt} 13{com}. rename washer wash_machine
+{txt} 14{com}. gen telef=(phone==1|cel==1)
+{txt} 15{com}. rename rooms nex_room 
+{txt} 16{com}. rename bedrooms n_bedroom
+{txt} 17{com}. 
+. rename wgt weight
+{txt} 18{com}. gen nweight = weight*members
+{txt} 19{com}. 
+. rename hrs1 total_hrs
+{txt} 20{com}. destring hhid, replace
+{txt} 21{com}. gen survey = "LFS"
+{txt} 22{com}. 
+. gen employed    = (unemploy1==0 & eap1==1 & age>14)
+{txt} 23{com}. gen unemployed  = (unemploy1==1 & eap1==1 & age>14)
+{txt} 24{com}. gen not_LF              = (eap1==0 & age>14)
+{txt} 25{com}. 
+. gen     emp_status       =1 if  employed        == 1 
+{txt} 26{com}. replace emp_status       =2 if  unemployed  == 1
+{txt} 27{com}. replace emp_status       =3 if  not_LF          == 1
+{txt} 28{com}. label   def                     emp_status      1 "employed" 2 "unemployed" 3 "out of LF" 
+{txt} 29{com}. label   val                     emp_status emp_status
+{txt} 30{com}. 
+. gen member_sq = members*members
+{txt} 31{com}. 
+. gen parish=dist
+{txt} 32{com}. 
+. egen no_dependent          =total(age_group==1), by(hhid)
+{txt} 33{com}. 
+. gen occupation=1 if selfemp==1
+{txt} 34{com}. replace occupation=2 if employer==1
+{txt} 35{com}. replace occupation=3 if employee==1
+{txt} 36{com}. 
+. label define occupation 1 self_employed 2 employer 3 employee
+{txt} 37{com}. label values occupation occupation
+{txt} 38{com}. 
+. egen married=total(relation==2), by(hhid)
+{txt} 39{com}. replace married =1 if married>0
+{txt} 40{com}. 
+. destring ed, replace
+{txt} 41{com}. 
+. replace sector=10 if sector==4
+{txt} 42{com}. drop if parish==0 | parish==.
+{txt} 43{com}. 
+. global head_char "sex relation hhid married age_group edu_group emp_status sector occupation unemployed emp_status"
+{txt} 44{com}. global hh_char "no_dependent urban parish members member_sq own_home wash_machine fridge telef n_bedroom car computer"
+{txt} 45{com}. 
+. keep ed hhead nweight weight survey year $head_char $hh_char 
+{txt} 46{com}. 
+. 
+. gen povline             =       6443            
+{txt} 47{com}. gen povline_def11       =       6067.426        
+{txt} 48{com}. 
+. global char_cont "n_bedroom"
+{txt} 49{com}. global char_bi "married own_home wash_machine fridge car computer"
+{txt} 50{com}. global char_cat_uno "sector emp_status occupation"
+{txt} 51{com}. global char_cat_o "edu_group"
+{txt} 52{com}. 
+. save `LFS2008_2016'
+{txt} 53{com}. 
+. // PREPARE HBS2016
+. tempfile HBS2016
+{txt} 54{com}. use "https://www.dropbox.com/s/kpniuza3u0ezo3t/LCA_2016_SLCHB_v01_M_v01_A_SEDLAC-03__deflated_all.dta?dl=1", clear
+{txt} 55{com}. rename (hombre edad casado nivel aedu relab region_est2 urban)(sex age married edu_level edu_year employment_type med_region urban)
+{txt} 56{com}. rename (miembros agua elect propieta auto moto bici tv_cable lavarropas heladera precaria)(members water_access elect_access own_home car motor bike tv wash_machine fridge bad_loc)
+{txt} 57{com}. rename (gedad1 habita dormi banio cloacas)(age_group nex_room n_bedroom toilet toilet_sewer)
+{txt} 58{com}. rename internet_casa internet 
+{txt} 59{com}. rename deseo_emp xtrawork
+{txt} 60{com}. rename contrato signed_contract
+{txt} 61{com}. rename hstrt total_hrs
+{txt} 62{com}. rename computadora computer
+{txt} 63{com}. rename durades mo_unemp
+{txt} 64{com}. rename id hhid 
+{txt} 65{com}. rename ano_ocaux year
+{txt} 66{com}. rename relacion relation
+{txt} 67{com}. rename pondera weight
+{txt} 68{com}. gen nweight = weight*members
+{txt} 69{com}. 
+. gen pcexpae_def11 = pcexpae/cpi11
+{txt} 70{com}. gen povline_def11 = povline/cpi11
+{txt} 71{com}. gen ln_pcexpae_def11 = log(pcexpae_def11)
+{txt} 72{com}. egen no_dependent          =total(age<=14), by(hhid)
+{txt} 73{com}. 
+. recode edu_level (0  =1 no_school)(1/2=2 primary)(3/4=3 secondary)(5/6 = 4 tertiary) (else=.), gen(edu_group)
+{txt} 74{com}. 
+. gen employed    = (ocupado==1 & desocupa==0 & age>14)
+{txt} 75{com}. gen unemployed  = (ocupado==0 & desocupa==1 & age>14)
+{txt} 76{com}. gen not_LF              = (employed==0 & unemployed==0 & age>14)
+{txt} 77{com}. 
+. 
+. gen     emp_status       =1 if  employed        == 1 
+{txt} 78{com}. replace emp_status       =2 if  unemployed  == 1
+{txt} 79{com}. replace emp_status       =3 if  not_LF          == 1
+{txt} 80{com}. label   def                     emp_status      1 "employed" 2 "unemployed" 3 "out of LF" 
+{txt} 81{com}. label   val                     emp_status emp_status
+{txt} 82{com}. 
+. gen     occupation = 1  if employment_type == 3 //self_employed 
+{txt} 83{com}. replace occupation = 2  if employment_type == 1 //employer
+{txt} 84{com}. replace occupation = 3  if employment_type == 2|employment_type == 4 // employee
+{txt} 85{com}. 
+. label   def                     occupation      1 "self employed" 2 "employer" 3 "employee"  0 "unemployed" 100 "out of LF"
+{txt} 86{com}. label   val                     occupation occupation
+{txt} 87{com}. 
+. drop sector
+{txt} 88{com}. recode sector1d (1 2=1 agriculture)(4 = 2 manufacturing)(6 = 3 construction)(3 5 =4 mining_energy)(13 14 15 = 5 edu_health_social_service) ///
+>                                 (10 11 12 17= 6 professional_service)(9 = 7 tansportation)(7=8 wholesale_retail)(8 = 9 hotel_restaurants)(16 = 10 other), gen(sector)
+{txt} 89{com}. 
+.         gen                             parish = region_est1
+{txt} 90{com}.         recode                  parish (4=3) (6=4) (7=5) (8=6) (9=7) (10=8) (11=9) (12=10)
+{txt} 91{com}.         label def               parish  1 "Castries City" 2 "Castries Rural" 3 "Anse la Raye/Canaries" 4 "SoufriËre" ///
+>                                                         5 "Choiseul" 6 "Laborie" 7 "Vieux Fort" 8 "Micoud" 9 "Dennery" 10 "Gros Islet"
+{txt} 92{com}.         label val               parish parish
+{txt} 93{com}.         label var               parish "District"
+{txt} 94{com}.         drop urban
+{txt} 95{com}.         gen                             urban = (parish == 1 | parish == 2 | parish == 3 | parish == 6 | parish == 9 | parish == 12) if parish != .
+{txt} 96{com}.         label var               urban "Urban locality"
+{txt} 97{com}. 
+. gen member_sq = members*members
+{txt} 98{com}. gen survey = "HBS"
+{txt} 99{com}. 
+. global head_char "sex relation hhid married age_group edu_group emp_status sector occupation unemployed emp_status"
+{txt}100{com}. global hh_char "no_dependent urban parish members member_sq own_home wash_machine fridge telef n_bedroom car computer"
+{txt}101{com}. 
+. keep ed cpi11 povline povline_def11 pcexpae pcexpae_def11 ln_pcexpae_def11 nweight weight survey year $head_char $hh_char 
+{txt}102{com}. 
+. replace sector=10 if sector==4
+{txt}103{com}. drop if parish==0 | parish==.
+{txt}104{com}. 
+. replace povline                 =       6443            if povline ==.
+{txt}105{com}. replace povline_def11   =       6067.426        if povline_def11==.
+{txt}106{com}. 
+. append using `LFS2008_2016'
+{txt}107{com}. 
+. global char_cont "n_bedroom"
+{txt}108{com}. global char_bi "married own_home wash_machine fridge car computer"
+{txt}109{com}. global char_cat_uno "sector emp_status occupation"
+{txt}110{com}. global char_cat_o "edu_group"
+{txt}111{com}. 
+. // impute missing values for all necessary variables
+. mi set mlong
+{txt}112{com}. mi register imputed  $char_cont $char_bi $char_cat_uno $char_cat_o
+{txt}113{com}. qui mi impute chained (regress) $char_cont (logit) $char_bi (mlogit) $char_cat_uno (ologit) $char_cat_o = sex age_group [pw=weight] if survey=="HBS", augment add(5) rseed(1234) force noisily 
+{txt}114{com}. qui mi impute chained (regress) $char_cont (logit) $char_bi (mlogit) $char_cat_uno (ologit) $char_cat_o = sex age_group [pw=weight] if survey=="LFS", augment add(5) rseed(1234) force noisily 
+{txt}115{com}. 
+. tab age_group, gen(age_group_) 
+{txt}116{com}. tab edu_group, gen(edu_group_)
+{txt}117{com}. mi passive: egen no_no_school      =total(edu_group_1==1), by(hhid)
+{txt}118{com}. mi passive: egen no_primary        =total(edu_group_2==1), by(hhid)
+{txt}119{com}. mi passive: egen no_secondary      =total(edu_group_3==1), by(hhid)
+{txt}120{com}. mi passive: egen no_tertiary       =total(edu_group_4==1), by(hhid)
+{txt}121{com}. 
+. tab occupation, gen(occupation_)
+{txt}122{com}. mi passive: egen no_self_employed=total(occupation_1==1), by(hhid)
+{txt}123{com}. mi passive: egen no_employer     =total(occupation_2==1), by(hhid)
+{txt}124{com}. mi passive: egen no_employee     =total(occupation_3==1), by(hhid)
+{txt}125{com}. 
+. tab sector, gen(sector_)
+{txt}126{com}. tab parish, gen(parish_)
+{txt}127{com}. tab emp_status, gen(emp_status_)
+{txt}128{com}. 
+. mi svyset       ed      [pw=nweight], strata(parish)
+{txt}129{com}. 
+. keep if relation==1
+{txt}130{com}. 
+. global head_char "married age_group_2-age_group_5 edu_group_2-edu_group_4 sector_2-sector_9 occupation_2-occupation_3 emp_status_2 emp_status_3"
+{txt}131{com}. global hh_char "parish_2-parish_10 no_dependent no_self_employed no_employer no_employee no_no_school no_primary no_secondary no_tertiary members member_sq"
+{txt}132{com}. 
+. mi register imputed  ln_pcexpae_def11
+{txt}133{com}. 
+. qui mi impute chained (regress) ln_pcexpae_def11 = sex $head_char $hh_char [pw=nweight], augment add(10) replace rseed(1234) force noisily 
+{txt}134{com}. 
+. mi xeq: gen pcexpae_def11_hat=exp(ln_pcexpae_def11)
+{txt}135{com}. mi xeq: gen poverty_hat=(pcexpae_def11_hat <= povline_def11)
+{txt}136{com}. {c )-}
+{txt}137{com}. mi estimate: svy: mean poverty_hat if year==2016 & survey=="HBS"
+{txt}138{com}. dis `i'
+{txt}139{com}. mi estimate: svy: mean poverty_hat if year==`i' & survey=="LFS"
+{txt}140{com}. {c )-}
+{res}
+{txt}Multiple-imputation estimates{col 35}Imputations{col 51}= {res}        20
+{txt}Survey: Mean estimation{col 35}Number of obs{col 51}= {res}     1,480
+
+{txt}{col 1}Number of strata{col 19}= {res}       10{txt}{col 35}Population size{col 51}={res}    171,410
+{txt}{col 1}Number of PSUs{col 19}= {res}      240
+{txt}{col 35}Average RVI{col 51}= {res}    0.0000
+{txt}{col 35}Largest FMI{col 51}= {res}    0.0000
+{txt}{col 35}Complete DF{col 51}= {res}       230
+{txt}DF adjustment:{ralign 15: {res:Small sample}}{col 35}DF:     min{col 51}= {res}    228.03
+{txt}{col 35}        avg{col 51}= {res}    228.03
+{txt}Within VCE type: {ralign 12:{res:Linearized}}{col 35}        max{col 51}= {res}    228.03
+
+{txt}{hline 13}{c TT}{hline 11}{hline 11}{hline 14}{hline 12}
+{col 14}{c |}       Mean{col 26}   Std. Err.{col 38}     [95% Con{col 51}f. Interval]
+{hline 13}{c +}{hline 11}{hline 11}{hline 14}{hline 12}
+{space 1}poverty_hat {c |}{col 14}{res}{space 2}  .265883{col 26}{space 2}   .01786{col 37}{space 5} .2306912{col 51}{space 3} .3010747
+{txt}{hline 13}{c BT}{hline 11}{hline 11}{hline 14}{hline 12}
+{res}2016
+
+{txt}Multiple-imputation estimates{col 35}Imputations{col 51}= {res}        20
+{txt}Survey: Mean estimation{col 35}Number of obs{col 51}= {res}     3,174
+
+{txt}{col 1}Number of strata{col 19}= {res}       10{txt}{col 35}Population size{col 51}={res}  694,562.2
+{txt}{col 1}Number of PSUs{col 19}= {res}      480
+{txt}{col 35}Average RVI{col 51}= {res}    4.0369
+{txt}{col 35}Largest FMI{col 51}= {res}    0.8163
+{txt}{col 35}Complete DF{col 51}= {res}       470
+{txt}DF adjustment:{ralign 15: {res:Small sample}}{col 35}DF:     min{col 51}= {res}     22.44
+{txt}{col 35}        avg{col 51}= {res}     22.44
+{txt}Within VCE type: {ralign 12:{res:Linearized}}{col 35}        max{col 51}= {res}     22.44
+
+{txt}{hline 13}{c TT}{hline 11}{hline 11}{hline 14}{hline 12}
+{col 14}{c |}       Mean{col 26}   Std. Err.{col 38}     [95% Con{col 51}f. Interval]
+{hline 13}{c +}{hline 11}{hline 11}{hline 14}{hline 12}
+{space 1}poverty_hat {c |}{col 14}{res}{space 2} .1426543{col 26}{space 2} .0209316{col 37}{space 5} .0992937{col 51}{space 3} .1860149
+{txt}{hline 13}{c BT}{hline 11}{hline 11}{hline 14}{hline 12}
+{res}
+{txt}Multiple-imputation estimates{col 35}Imputations{col 51}= {res}        20
+{txt}Survey: Mean estimation{col 35}Number of obs{col 51}= {res}     1,480
+
+{txt}{col 1}Number of strata{col 19}= {res}       10{txt}{col 35}Population size{col 51}={res}    171,410
+{txt}{col 1}Number of PSUs{col 19}= {res}      240
+{txt}{col 35}Average RVI{col 51}= {res}    0.0000
+{txt}{col 35}Largest FMI{col 51}= {res}    0.0000
+{txt}{col 35}Complete DF{col 51}= {res}       230
+{txt}DF adjustment:{ralign 15: {res:Small sample}}{col 35}DF:     min{col 51}= {res}    228.03
+{txt}{col 35}        avg{col 51}= {res}    228.03
+{txt}Within VCE type: {ralign 12:{res:Linearized}}{col 35}        max{col 51}= {res}    228.03
+
+{txt}{hline 13}{c TT}{hline 11}{hline 11}{hline 14}{hline 12}
+{col 14}{c |}       Mean{col 26}   Std. Err.{col 38}     [95% Con{col 51}f. Interval]
+{hline 13}{c +}{hline 11}{hline 11}{hline 14}{hline 12}
+{space 1}poverty_hat {c |}{col 14}{res}{space 2}  .265883{col 26}{space 2}   .01786{col 37}{space 5} .2306912{col 51}{space 3} .3010747
+{txt}{hline 13}{c BT}{hline 11}{hline 11}{hline 14}{hline 12}
+{res}2015
+
+{txt}Multiple-imputation estimates{col 35}Imputations{col 51}= {res}        20
+{txt}Survey: Mean estimation{col 35}Number of obs{col 51}= {res}     3,315
+
+{txt}{col 1}Number of strata{col 19}= {res}       10{txt}{col 35}Population size{col 51}={res} 691,379.41
+{txt}{col 1}Number of PSUs{col 19}= {res}      480
+{txt}{col 35}Average RVI{col 51}= {res}    3.6308
+{txt}{col 35}Largest FMI{col 51}= {res}    0.7994
+{txt}{col 35}Complete DF{col 51}= {res}       470
+{txt}DF adjustment:{ralign 15: {res:Small sample}}{col 35}DF:     min{col 51}= {res}     23.67
+{txt}{col 35}        avg{col 51}= {res}     23.67
+{txt}Within VCE type: {ralign 12:{res:Linearized}}{col 35}        max{col 51}= {res}     23.67
+
+{txt}{hline 13}{c TT}{hline 11}{hline 11}{hline 14}{hline 12}
+{col 14}{c |}       Mean{col 26}   Std. Err.{col 38}     [95% Con{col 51}f. Interval]
+{hline 13}{c +}{hline 11}{hline 11}{hline 14}{hline 12}
+{space 1}poverty_hat {c |}{col 14}{res}{space 2} .1474055{col 26}{space 2} .0200086{col 37}{space 5} .1060792{col 51}{space 3} .1887317
+{txt}{hline 13}{c BT}{hline 11}{hline 11}{hline 14}{hline 12}
+{res}
